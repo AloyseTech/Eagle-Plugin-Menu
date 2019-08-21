@@ -1,0 +1,571 @@
+#usage "<b>Generate a placement information layer for assembly drawing.</b>\n"
+"<p>"
+    "Generates a command sequence which copies the placement "
+    "of all elements of your layout into tAssembly (153) and bAssembly (154) layers. "
+    "<p>"
+    "<author>Author : Théo Meyer</author>"
+
+    // THIS PROGRAM IS PROVIDED AS IS AND WITHOUT WARRANTY OF ANY KIND, EXPRESSED OR IMPLIED
+
+    int offset = 100;
+int tf = 0;
+int tAssembly = 153, bAssembly = 154;
+string cmd = ""; //"SET UNDO_LOG OFF;\n"; // advisable for speed reasons
+string h;
+string alignments[] = {"bottom-left", "bottom-enter", "bottom-right", "center-left", "center", "center-right", "top-left", "top-center", "top-right"};
+
+int baseLayerTop = 21; //tPlace or tDocu
+int baseLayerBot = 22;
+
+void header(void)
+{
+    sprintf(h, "layer %d tAssembly;\n", tAssembly); // here you can change the new
+    cmd += h;
+    sprintf(h, "layer %d bAssembly;\n", bAssembly); // layers names
+    cmd += h;
+    sprintf(h, "set color_layer %d 23;\n", tAssembly); // and
+    cmd += h;
+    sprintf(h, "set color_layer %d 29;\n", bAssembly); // colors
+    cmd += h;
+    sprintf(h, "set wire_bend 2;\n");
+    cmd += h;
+    sprintf(h, "\nGRID mil;\n\n");
+    cmd += h;
+}
+
+void DrawWire(UL_WIRE W)
+{
+    if (W.arc)
+    {
+        h = "";
+        sprintf(h, "Arc CCW %.3f (%.3f %.3f) (%.3f %.3f) (%.3f %.3f);\n",
+                u2mil(W.width),
+                u2mil(W.arc.x1), u2mil(W.arc.y1),
+                u2mil(W.arc.xc + W.arc.xc - W.arc.x1), u2mil(W.arc.yc + W.arc.yc - W.arc.y1),
+                u2mil(W.arc.x2), u2mil(W.arc.y2));
+    }
+    else
+    {
+        cmd += h;
+        sprintf(h, "WIRE %.3f (%.3f %.3f) (%.3f %.3f);\n",
+                u2mil(W.width), u2mil(W.x1), u2mil(W.y1), u2mil(W.x2), u2mil(W.y2));
+    }
+    cmd += h;
+}
+
+void DrawCircle(UL_CIRCLE C)
+{
+    sprintf(h, "Circle %f (%f %f) (%f %f);\n",
+            u2mil(C.width),
+            u2mil(C.x), u2mil(C.y),
+            u2mil(C.x + C.radius), u2mil(C.y));
+    cmd += h;
+}
+
+void DrawRectangle(UL_RECTANGLE R)
+{
+    sprintf(h, "Rect R%f (%f %f) (%f %f);\n",
+            R.angle,
+            u2mil(R.x1), u2mil(R.y1),
+            u2mil(R.x2), u2mil(R.y2));
+    cmd += h;
+}
+
+void DrawPolygon(UL_POLYGON PL)
+{
+    sprintf(h, "Change Isolate %f;\n", u2mil(PL.isolate));
+    cmd += h;
+    sprintf(h, "Change Spacing %f;\n", u2mil(PL.spacing));
+    cmd += h;
+    if (PL.orphans)
+    {
+        sprintf(h, "Change Orphans On;\n");
+        cmd += h;
+    }
+    else
+    {
+        sprintf(h, "Change Orphans Off;\n");
+        cmd += h;
+    }
+    if (PL.thermals)
+    {
+        sprintf(h, "Change Thermals On;\n");
+        cmd += h;
+    }
+    else
+    {
+        sprintf(h, "Change Thermals Off;\n");
+        cmd += h;
+    }
+    if (PL.pour == POLYGON_POUR_SOLID)
+    {
+        sprintf(h, "Change Pour Solid;\n");
+        cmd += h;
+    }
+    else
+    {
+        sprintf(h, "Change Pour Hatch;\n");
+        cmd += h;
+    }
+    sprintf(h, "Polygon %f ", u2mil(PL.width));
+    cmd += h;
+    PL.wires(W)
+    {
+        sprintf(h, "(%f %f) ", u2mil(W.x1), u2mil(W.y1));
+        cmd += h; /*start coord.*/
+        break;
+    };
+    PL.wires(W)
+    {
+        sprintf(h, " %+f (%f %f)", W.curve, u2mil(W.x2), u2mil(W.y2));
+        cmd += h;
+    };
+    sprintf(h, ";\n");
+    cmd += h;
+    return;
+}
+
+/*
+int getFootprintHeight(UL_FOOTPRINT F)
+{
+    int yMax = INT_MIN;
+    int yMin = INT_MAX;
+
+    F.circles(circle)
+    {
+        // Get circle from PCB layers (copper, silkscreen, placements) and tDocu
+        if (circle.layer < 22 || circle.layer == 51 || circle.layer == 52)
+        {
+            int top = circle.y + circle.radius + circle.width / 2;
+            int bot = circle.y - circle.radius - circle.width / 2;
+            if (top > yMax)
+                yMax = top;
+            if (bot < yMin)
+                yMin = bot;
+        }
+    }
+    F.rectangles(rect)
+    {
+        if (rect.layer < 22 || rect.layer == 51 || rect.layer == 52)
+        {
+            int xCenter = (rect.x2 + rect.x1) / 2.0;
+            int yCenter = (rect.y2 + rect.y1) / 2.0;
+            int halfWidth = (rect.y2 - rect.y1) / 2.0;
+            int halfHeight = (rect.x2 - rect.x1) / 2.0;
+
+            //int rotatedX = halfWidth * cos(rect.angle) - halfHeight * sin(rect.angle);
+
+            int rotatedY1 = halfWidth * sin(rect.angle) + halfHeight * cos(rect.angle);
+            int rotatedY2 = -halfWidth * sin(rect.angle) + halfHeight * cos(rect.angle);
+            int rotatedY3 = halfWidth * sin(rect.angle) - halfHeight * cos(rect.angle);
+            int rotatedY4 = -halfWidth * sin(rect.angle) - halfHeight * cos(rect.angle);
+
+            rotatedY1 = rotatedY1 + yCenter;
+            rotatedY2 = rotatedY2 + yCenter;
+            rotatedY3 = rotatedY3 + yCenter;
+            rotatedY4 = rotatedY4 + yCenter;
+
+            if (rotatedY1 > yMax)
+                yMax = rotatedY1;
+            if (rotatedY2 > yMax)
+                yMax = rotatedY2;
+            if (rotatedY3 > yMax)
+                yMax = rotatedY3;
+            if (rotatedY4 > yMax)
+                yMax = rotatedY4;
+
+            if (rotatedY1 < yMin)
+                yMin = rotatedY1;
+            if (rotatedY2 < yMin)
+                yMin = rotatedY2;
+            if (rotatedY3 < yMin)
+                yMin = rotatedY3;
+            if (rotatedY4 < yMin)
+                yMin = rotatedY4;
+        }
+        F.wires(wire)
+        {
+            if (wire.layer < 22 || wire.layer == 51 || wire.layer == 52)
+            {
+                if (wire.y1 > yMax)
+                    yMax = wire.y1;
+                if (wire.y1 < yMin)
+                    yMin = wire.y1;
+
+                if (wire.y2 > yMax)
+                    yMax = wire.y2;
+                if (wire.y2 < yMin)
+                    yMin = wire.y2;
+            }
+        }
+        F.holes(hole)
+        {
+            int top = hole.y + hole.diameter[0] / 2;
+            int bot = hole.y - hole.diameter[0] / 2;
+            if (top > yMax)
+                yMax = top;
+            if (bot < yMin)
+                yMin = bot;
+        }
+        F.polygons(P)
+        {
+            P.wires(wire)
+            {
+                if (wire.layer < 22 || wire.layer == 51 || wire.layer == 52)
+                {
+                    if (wire.y1 > yMax)
+                        yMax = wire.y1;
+                    if (wire.y1 < yMin)
+                        yMin = wire.y1;
+
+                    if (wire.y2 > yMax)
+                        yMax = wire.y2;
+                    if (wire.y2 < yMin)
+                        yMin = wire.y2;
+                }
+            }
+        }
+        F.contacts(contact)
+        {
+            //SMD pads
+            int rotatedY1 = contact.smd.dx * sin(contact.smd.angle) + contact.smd.dy * cos(contact.smd.angle);
+            int rotatedY2 = -contact.smd.dx * sin(contact.smd.angle) + contact.smd.dy * cos(contact.smd.angle);
+            int rotatedY3 = contact.smd.dx * sin(contact.smd.angle) - contact.smd.dy * cos(contact.smd.angle);
+            int rotatedY4 = -contact.smd.dx * sin(contact.smd.angle) - contact.smd.dy * cos(contact.smd.angle);
+
+            rotatedY1 = rotatedY1 + contact.smd.y;
+            rotatedY2 = rotatedY2 + contact.smd.y;
+            rotatedY3 = rotatedY3 + contact.smd.y;
+            rotatedY4 = rotatedY4 + contact.smd.y;
+
+            if (rotatedY1 > yMax)
+                yMax = rotatedY1;
+            if (rotatedY2 > yMax)
+                yMax = rotatedY2;
+            if (rotatedY3 > yMax)
+                yMax = rotatedY3;
+            if (rotatedY4 > yMax)
+                yMax = rotatedY4;
+
+            if (rotatedY1 < yMin)
+                yMin = rotatedY1;
+            if (rotatedY2 < yMin)
+                yMin = rotatedY2;
+            if (rotatedY3 < yMin)
+                yMin = rotatedY3;
+            if (rotatedY4 < yMin)
+                yMin = rotatedY4;
+
+            // Through hole pads
+            if ((contact.smd.pad.y + contact.smd.pad.diameter[0] / 2) > yMin)
+                yMax = contact.smd.pad.y + contact.smd.pad.diameter[0] / 2;
+            if ((contact.smd.pad.y + contact.smd.pad.diameter[0] / 2) > yMin)
+                yMax = contact.smd.pad.y + contact.smd.pad.diameter[0] / 2;
+
+            if ((contact.smd.pad.y - contact.smd.pad.diameter[0] / 2) > yMin)
+                yMax = contact.smd.pad.y - contact.smd.pad.diameter[0] / 2;
+            if ((contact.smd.pad.y - contact.smd.pad.diameter[0] / 2) < yMin)
+                yMax = contact.smd.pad.y - contact.smd.pad.diameter[0] / 2;
+        }
+    }
+
+    if (yMax != INT_MIN && yMin != INT_MAX)
+        return (yMax - yMin);
+    else
+        return 0;
+}
+
+int getFootprintWidth(UL_FOOTPRINT f)
+{
+    int xMax = INT_MIN;
+    int xMin = INT_MAX;
+
+    F.circles(circle)
+    {
+        // Get circle from PCB layers (copper, silkscreen, placements) and tDocu
+        if (circle.layer < 22 || circle.layer == 51 || circle.layer == 52)
+        {
+            int top = circle.x + circle.radius + circle.width / 2;
+            int bot = circle.x - circle.radius - circle.width / 2;
+            if (top > xMax)
+                xMax = top;
+            if (bot < xMin)
+                xMin = bot;
+        }
+    }
+    F.rectangles(rect)
+    {
+        if (rect.layer < 22 || rect.layer == 51 || rect.layer == 52)
+        {
+            int xCenter = (rect.x2 + rect.x1) / 2.0;
+            int yCenter = (rect.y2 + rect.y1) / 2.0;
+            int halfWidth = (rect.y2 - rect.y1) / 2.0;
+            int halfHeight = (rect.x2 - rect.x1) / 2.0;
+
+            //int rotatedX = halfWidth * cos(rect.angle) - halfHeight * sin(rect.angle);
+            int rotatedX1 = halfWidth * cos(rect.angle) - halfHeight * sin(rect.angle);
+            int rotatedX2 = halfWidth * cos(rect.angle) + halfHeight * sin(rect.angle);
+            int rotatedX3 = -halfWidth * cos(rect.angle) - halfHeight * sin(rect.angle);
+            int rotatedX4 = -halfWidth * cos(rect.angle) + halfHeight * sin(rect.angle);
+
+            rotatedX1 = rotatedX1 + xCenter;
+            rotatedX2 = rotatedX2 + xCenter;
+            rotatedX3 = rotatedX3 + xCenter;
+            rotatedX4 = rotatedX4 + xCenter;
+
+            if (rotatedX1 > XMax)
+                xMax = rotatedX1;
+            if (rotatedX2 > xMax)
+                xMax = rotatedX2;
+            if (rotatedX3 > xMax)
+                xMax = rotatedX3;
+            if (rotatedX4 > xMax)
+                xMax = rotatedX4;
+
+            if (rotatedX1 < xMin)
+                xMin = rotatedX1;
+            if (rotatedX2 < xMin)
+                xMin = rotatedX2;
+            if (rotatedX3 < xMin)
+                xMin = rotatedx3;
+            if (rotatedX4 < xMin)
+                xMin = rotatedX4;
+        }
+        F.wires(wire)
+        {
+            if (wire.layer < 22 || wire.layer == 51 || wire.layer == 52)
+            {
+                if (wire.x1 > xMax)
+                    xMax = wire.x1;
+                if (wire.x1 < xMin)
+                    xMin = wire.x1;
+
+                if (wire.x2 > xMax)
+                    xMax = wire.x2;
+                if (wire.x2 < xMin)
+                    xMin = wire.x2;
+            }
+        }
+        F.holes(hole)
+        {
+            int left = hole.x + hole.diameter / 2;
+            int right = hole.x - hole.diameter / 2;
+            if (left > xMax)
+                xMax = left;
+            if (right < xMin)
+                xMin = right;
+        }
+        F.polygons(P)
+        {
+            P.wires(wire)
+            {
+                if (wire.layer < 22 || wire.layer == 51 || wire.layer == 52)
+                {
+                    if (wire.x1 > xMax)
+                        xMax = wire.x1;
+                    if (wire.y1 < xMin)
+                        xMin = wire.x1;
+
+                    if (wire.x2 > xMax)
+                        xMax = wire.x2;
+                    if (wire.x2 < xMin)
+                        xMin = wire.x2;
+                }
+            }
+        }
+        F.contacts(contact)
+        {
+            //SMD pads
+            int rotatedX1 = contact.smd.dx * cos(contact.smd.angle) - contact.smd.dy * sin(contact.smd.angle);
+            int rotatedX2 = contact.smd.dx * cos(contact.smd.angle) + contact.smd.dy * sin(contact.smd.angle);
+            int rotatedX3 = -contact.smd.dx * cos(contact.smd.angle) - contact.smd.dy * sin(contact.smd.angle);
+            int rotatedX4 = -contact.smd.dx * cos(contact.smd.angle) + contact.smd.dy * sin(contact.smd.angle);
+
+            rotatedX1 = rotatedX1 + contact.smd.x;
+            rotatedX2 = rotatedX2 + contact.smd.x;
+            rotatedX3 = rotatedX3 + contact.smd.x;
+            rotatedX4 = rotatedX4 + contact.smd.x;
+
+            if (rotatedX1 > XMax)
+                xMax = rotatedX1;
+            if (rotatedX2 > xMax)
+                xMax = rotatedX2;
+            if (rotatedX3 > xMax)
+                xMax = rotatedX3;
+            if (rotatedX4 > xMax)
+                xMax = rotatedX4;
+
+            if (rotatedX1 < xMin)
+                xMin = rotatedX1;
+            if (rotatedX2 < xMin)
+                xMin = rotatedX2;
+            if (rotatedX3 < xMin)
+                xMin = rotatedx3;
+            if (rotatedX4 < xMin)
+                xMin = rotatedX4;
+
+            // Through hole pads
+            if ((contact.smd.pad.y + contact.smd.pad.diameter[0] / 2) > xMax)
+                xMax = contact.smd.pad.y + contact.smd.pad.diameter[0] / 2;
+            if ((contact.smd.pad.y + contact.smd.pad.diameter[0] / 2) > xMax)
+                xMax = contact.smd.pad.y + contact.smd.pad.diameter[0] / 2;
+
+            if ((contact.smd.pad.x - contact.smd.pad.diameter[0] / 2) < xMin)
+                xMin = contact.smd.pad.x - contact.smd.pad.diameter[0] / 2;
+            if ((contact.smd.pad.x - contact.smd.pad.diameter[0] / 2) < xMin)
+                xMin = contact.smd.pad.x - contact.smd.pad.diameter[0] / 2;
+        }
+    }
+
+    if (xMax != INT_MIN && xMin != INT_MAX)
+        return (xMax - xMin);
+    else
+        return 0;
+}
+*/
+
+if (board)
+{
+    board(B)
+    {
+        header();
+        B.elements(E)
+        {
+            E.texts(T)
+            {
+                if (T.layer == 25 || T.layer == baseLayerTop)
+                {
+                    h = "";
+                    sprintf(h, "Change Layer %d;\n", tAssembly);
+                    cmd += h;
+
+                    sprintf(h, "Change ratio 12;\n");
+                    cmd += h;
+                    sprintf(h, "Change align center;\n");
+                    cmd += h;
+
+                    //text size = 80% of component area height
+                    real tsize = 0.8 * u2mil(E.footprint.area.y2 - E.footprint.area.y1);
+                    tsize = 30;
+
+                    sprintf(h, "Change Size %5.3f;\n", tsize);
+                    cmd += h;
+
+                    sprintf(h, "Text '%s' R%1.0f (%5.3f %5.3f);\n",
+                            E.name, E.angle, u2mil(E.x), u2mil(E.y));
+                    cmd += h;
+                }
+                else if (T.layer == 26 || T.layer == baseLayerBot)
+                {
+                    h = "";
+                    sprintf(h, "Change Layer %d;\n", bAssembly);
+                    cmd += h;
+
+                    sprintf(h, "Change ratio 12;\n");
+                    cmd += h;
+                    sprintf(h, "Change align center;\n");
+                    cmd += h;
+
+                    //text size = 80% of component area height
+                    // BAD NEWS: footprint.area takes the area of the >NAME and >VALUE text as well...
+                    real tsize = 0.8 * u2mil(E.footprint.area.y2 - E.footprint.area.y1);
+                    tsize = 30;
+
+                    sprintf(h, "Change Size %5.3f;\n", tsize);
+                    cmd += h;
+
+                    // sprintf(h, "Text '%s' MR%1.0f (%5.3f %5.3f);\n",
+                    //         E.name, T.angle, u2mil(T.x), u2mil(T.y));
+
+                    //Text center on component with same angle as component
+                    sprintf(h, "Text '%s' MR%1.0f (%5.3f %5.3f);\n",
+                            E.name, E.angle, u2mil(E.x), u2mil(E.y));
+                    cmd += h;
+                }
+            }
+            E.package.wires(W)
+            {
+                if (W.layer == 25 || W.layer == baseLayerTop)
+                {
+                    sprintf(h, "CHANGE LAYER %d;\n", tAssembly);
+                    cmd += h;
+                    DrawWire(W);
+                }
+                else if (W.layer == 26 || W.layer == baseLayerBot)
+                {
+                    sprintf(h, "CHANGE LAYER %d;\n", bAssembly);
+                    cmd += h;
+                    DrawWire(W);
+                }
+            }
+            E.package.circles(C)
+            {
+                if (C.layer == 25 || C.layer == baseLayerTop)
+                {
+                    sprintf(h, "CHANGE LAYER %d;\n", tAssembly);
+                    cmd += h;
+                    DrawCircle(C);
+                }
+                else if (C.layer == 26 || C.layer == baseLayerBot)
+                {
+                    sprintf(h, "CHANGE LAYER %d;\n", bAssembly);
+                    cmd += h;
+                    DrawCircle(C);
+                }
+            }
+            E.package.rectangles(R)
+            {
+                if (R.layer == 25 || R.layer == baseLayerTop)
+                {
+                    sprintf(h, "CHANGE LAYER %d;\n", tAssembly);
+                    cmd += h;
+                    DrawRectangle(R);
+                }
+                else if (R.layer == 26 || R.layer == baseLayerBot)
+                {
+                    sprintf(h, "CHANGE LAYER %d;\n", bAssembly);
+                    cmd += h;
+                    DrawRectangle(R);
+                }
+            }
+            E.package.polygons(PL)
+            {
+                if (PL.layer == 25 || PL.layer == baseLayerTop)
+                {
+                    sprintf(h, "CHANGE LAYER %d;\n", tAssembly);
+                    cmd += h;
+                    DrawPolygon(PL);
+                }
+                else if (PL.layer == 26 || PL.layer == baseLayerBot)
+                {
+                    sprintf(h, "CHANGE LAYER %d;\n", bAssembly);
+                    cmd += h;
+                    DrawPolygon(PL);
+                }
+            }
+        }
+    }
+    cmd += "SET UNDO_LOG ON;\n";
+    cmd += "GRID LAST;\n";
+
+    //  EditBox
+    int Result = dlgDialog("Descriptions")
+    {
+        dlgTextEdit(cmd);
+        dlgHBoxLayout
+        {
+            dlgPushButton("+&Execute") dlgAccept();
+            dlgPushButton("-&Cancel") dlgReject();
+        }
+    };
+    if (Result == 0)
+        exit(0);
+
+    exit(cmd);
+}
+
+else
+{
+    dlgMessageBox("\n    Start this ULP in a Board    \n");
+    exit(0);
+}

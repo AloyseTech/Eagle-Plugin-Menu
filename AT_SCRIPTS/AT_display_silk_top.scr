@@ -1,0 +1,23 @@
+# Hide all layers
+Display None;
+
+# Copper layers
+Display 1;
+
+# Via and Pads
+Display 17 18; 
+
+# Outline, holes and milling path
+Display 20 45 46;
+
+# Stop Mask
+Display 29;
+
+# Display component origins and default names
+Display 23 25;
+
+# Display componant tPlace and tDocu
+Display 21 51
+
+# Disaply silk layer copy
+Display 121 125 127 151

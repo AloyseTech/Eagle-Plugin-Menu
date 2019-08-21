@@ -1,0 +1,23 @@
+# Hide all layers
+Display None;
+
+# Copper layers
+Display 16;
+
+# Via and Pads
+Display 17 18; 
+
+# Outline, holes and milling path
+Display 20 45 46;
+
+# Unrouted NET
+Display 19;
+
+# Stop Mask and paste
+Display 30 32;
+
+# Keepouts and restricted area
+Display 40 42 43;
+
+# Display component origins and names
+Display 24 26;

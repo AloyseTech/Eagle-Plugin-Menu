@@ -1,0 +1,30 @@
+string libraryPath = "C:/Users/theom/Documents/EAGLE/libraries/Eagle_Libraries/StraTagGem";
+string RESULT_FILE_PATH = "C:/Users/theom/Documents/EAGLE/ulps/AT_ULPS/at_script_result.txt";
+string PYTHON_PATH = "C:/Python37/python.exe";
+string PYTHON_SCRIPT = "C:/Users/theom/Documents/EAGLE/ulps/AT_ULPS/AT_PullLibrary.py";
+string cmd = PYTHON_PATH + " " + PYTHON_SCRIPT;
+
+/* OS detection function suggested by Andreas Weidner
+http://www.eaglecentral.ca/forums/index.php?t=msg&goto=139751 */
+int IsWindows()
+{ //Returns 1, if EAGLE is running under Windows (0 for Linux/Mac)
+    if ((strsub(argv[0], 0, 1) == "/") && (strsub(argv[0], 0, 2) != "//"))
+        return 0;
+    return 1;
+}
+
+void main()
+{
+    dlgMessageBox(cmd);
+    int ret = system(cmd);
+    
+    string result;
+    fileread(result, RESULT_FILE_PATH);
+
+    string msg;
+    sprintf(msg, "%sReturn code : %d\nMessage : %s", (ret == 0) ? ";" : ":", ret, result);
+    dlgMessageBox(msg, "OK");
+    exit(0);
+}
+
+main();

@@ -1,0 +1,27 @@
+MENU    '[bin/at_tricks_icon.svg] AloyseTech Quick Tricks and Tools {\
+                Top       : Display None Top    Pads Vias Dimension; |\
+                Bottom    : Display None Bottom Pads Vias Dimension; |\
+                [bin/icons/SingleLayerOn.svg] Layer Presets {\
+                        Default                 : SCRIPT AT_display_default_layers.scr; |\
+                        Route Top               : SCRIPT AT_display_route_top.scr; |\
+                        Route Inner 2           : SCRIPT AT_display_route_in2.scr; |\
+                        Route Inner 15          : SCRIPT AT_display_route_in15.scr; |\
+                        Route Bottom            : SCRIPT AT_display_route_bottom.scr; |\
+                        Top Silkscreen          : SCRIPT AT_display_silk_top.scr; |\
+                        Bottom Silkscreen       : SCRIPT AT_display_silk_bottom.scr;\
+                }\
+                [bin/icons/Name.svg] Silkscreen {\
+                        [bin/icons/Paintroller.svg] Copy Silkscreen Layers      : run AT_CopyNamesToSilk.ulp; run AT_CopyPlaceToSilk.ulp; run AT_CopyDocuToSilk.ulp; |\
+                        --- |\
+                        Copy Names                                              : run AT_CopyNamesToSilk.ulp; |\
+                        Copy Places                                             : run AT_CopyPlaceToSilk.ulp; |\
+                        Copy Docu                                               : run AT_CopyDocuToSilk.ulp; |\
+                }\
+                [bin/icons/Cam.svg] Manufacturing Files {\
+                        Generate Assembly Drawings                      : run AT_GenerareAssemblyDrawingLayers.ulp; |\
+                        [bin/icons/Print.svg] Top Assembly Drawing      : Display None Dimension tFrame tAssembly; Print - BLACK SOLID |\
+                        [bin/icons/Print.svg] Bottom Assembly Drawing   : Display None Dimension bFrame bAssembly; Print - BLACK SOLID MIRROR |\
+                        [bin/icons/Print.svg] Board Dimension Drawing   : Display None Dimension tFrame Measures; Print - BLACK SOLID\
+                }\
+        }'\
+;
