@@ -8,11 +8,11 @@ Add AT_SCRIPTS folder to the list of Eagle script directories (ex: $HOME\EAGLE\s
 
 Add AT_ULPS folder to the list of Eagle ULPs directories (ex: $HOME\EAGLE\ulps\AT_ULPS).
 
-![Eagle Directory Settings](Assets/EagleDirectoriesConfig.png)
+![Eagle Directory Settings](https://github.com/AloyseTech/Eagle-Plugin-Menu/blob/master/Assets/EagleDirectoriesConfig.PNG)
 
 Close and relaunch Eagle to access the AloyseTech Eagle Plugin Menu.
 
-![AloyseTech Eagle Plugin Menu Screenshot](Assets/MenuScreenShot.png)
+![AloyseTech Eagle Plugin Menu Screenshot](https://github.com/AloyseTech/Eagle-Plugin-Menu/blob/master/Assets/MenuScreenshot.png)
 
 
 ## Usage ##
