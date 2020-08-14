@@ -10,6 +10,10 @@ Add AT_ULPS folder to the list of Eagle ULPs directories (ex: $HOME\EAGLE\ulps\A
 
 ![Eagle Directory Settings](https://github.com/AloyseTech/Eagle-Plugin-Menu/blob/master/Assets/EagleDirectoriesConfig.PNG)
 
+Add the following line in the BRD section of your eagle.scr (the file is located in the default scripts folder, the section start with `BRD:`):
+
+>SCRIPT AT_SetupMenu.scr
+
 Close and relaunch Eagle to access the AloyseTech Eagle Plugin Menu.
 
 ![AloyseTech Eagle Plugin Menu Screenshot](https://github.com/AloyseTech/Eagle-Plugin-Menu/blob/master/Assets/MenuScreenshot.png)
